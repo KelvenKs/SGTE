@@ -1,24 +1,30 @@
 import fastify from 'fastify'
-import crypto, { randomUUID } from 'node:crypto'
-import { knex } from './database'
 import { env } from './env'
 import { usuariosRoutes } from './routes/usuarios'
 import { motoristasRoutes } from './routes/motoristas'
 import { estudantesRoutes } from './routes/estudantes'
 import { viaturasRoutes } from './routes/viaturas'
+import { rotasRoutes } from './routes/rotas'
+import { motoristaRotasRoutes } from './routes/motoristas_rotas'
+import { motoristaEstudantesRoutes } from './routes/motorista_estudantes'
+import { avaliacoesRoutes } from './routes/avaliacoes'
+import { relatoriosRoutes } from './routes/relatorios'
+import { authenticate } from './routes/authMiddleware'
+
+const app = fastify()
 
 
-const app = fastify ()
 
 app.register(usuariosRoutes)
 app.register(motoristasRoutes)
 app.register(estudantesRoutes)
 app.register(viaturasRoutes)
+app.register(rotasRoutes)
+app.register(motoristaRotasRoutes)
+app.register(motoristaEstudantesRoutes)
+app.register(avaliacoesRoutes)
+app.register(relatoriosRoutes)
 
-
-app.listen({
-    
-    port: env.PORT,
-}).then(() =>{
+app.listen({ port: env.PORT }).then(() => {
     console.log('Servidor HTTP Funcionando!')
 })

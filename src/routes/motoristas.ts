@@ -1,7 +1,8 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from 'crypto'
 import { knex } from '../database'
+
 
 export async function motoristasRoutes(app: FastifyInstance) {
     // GET listar motoristas
@@ -20,7 +21,7 @@ export async function motoristasRoutes(app: FastifyInstance) {
             viatura_id: z.string().uuid().optional(),
         })
 
-        const { usuario_id, licenca, registo_criminal, foto, viatura_id } = createMotoristaBodySchema.parse(request.body);
+        const { usuario_id, licenca, registo_criminal, foto, viatura_id } = createMotoristaBodySchema.parse(request.body)
 
         await knex('motoristas').insert({
             id: randomUUID(),
@@ -31,13 +32,13 @@ export async function motoristasRoutes(app: FastifyInstance) {
             viatura_id: viatura_id || null,
         })
 
-        return reply.status(201).send();
+        return reply.status(201).send()
     })
 
     // PUT atualizar motorista por ID
     app.put('/motorista/:id', async (request, reply) => {
         const getMotoristaParamsSchema = z.object({
-            id: z.string().uuid()
+            id: z.string().uuid(),
         })
 
         const updateMotoristaBodySchema = z.object({
@@ -63,7 +64,7 @@ export async function motoristasRoutes(app: FastifyInstance) {
     // DELETE motorista por ID
     app.delete('/motorista/:id', async (request, reply) => {
         const getMotoristaParamsSchema = z.object({
-            id: z.string().uuid()
+            id: z.string().uuid(),
         })
 
         const { id } = getMotoristaParamsSchema.parse(request.params)
