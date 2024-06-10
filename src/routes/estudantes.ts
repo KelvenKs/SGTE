@@ -21,7 +21,7 @@ export async function estudantesRoutes(app: FastifyInstance) {
             foto: z.string(),
         })
 
-        const { usuario_id, idade, contacto_responsavel, classe, turma, foto } = createEstudanteBodySchema.parse(request.body);
+        const { usuario_id, idade, contacto_responsavel, classe, turma, foto } = createEstudanteBodySchema.parse(request.body)
 
         await knex('estudantes').insert({
             id: randomUUID(),
@@ -33,7 +33,7 @@ export async function estudantesRoutes(app: FastifyInstance) {
             foto,
         })
 
-        return reply.status(201).send();
+        return reply.status(201).send()
     })
 
     // PUT atualizar estudante por ID
@@ -50,17 +50,17 @@ export async function estudantesRoutes(app: FastifyInstance) {
             foto: z.string().optional(),
         })
 
-        const { id } = getEstudanteParamsSchema.parse(request.params)
-        const data = updateEstudanteBodySchema.parse(request.body)
+        const { id } = getEstudanteParamsSchema.parse(request.params);
+        const data = updateEstudanteBodySchema.parse(request.body);
 
-        const updated = await knex('estudantes').where('id', id).update(data)
+        const updated = await knex('estudantes').where('id', id).update(data);
 
         if (updated === 0) {
             return reply.status(404).send({ message: 'Estudante não encontrado' })
         }
 
         return reply.send({ message: 'Estudante atualizado com sucesso' })
-    })
+    });
 
     // DELETE estudante por ID
     app.delete('/estudante/:id', async (request, reply) => {

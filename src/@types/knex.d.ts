@@ -35,6 +35,53 @@ declare module 'knex/types/tables'{
             inspeccao: string
             seguro: string
             foto: string
+            lotacao: number
         }
+
+        rotas: {
+            id: string
+            hora_chegada: string
+            hora_partida: string
+            descricao: string
+            viatura_id: string | null
+        }
+
+        motorista_rotas: {
+            id: string
+            motorista_id: string
+            rota_id: string
+            created_at: string
+            updated_at: string
+        }
+
+        motorista_estudantes: {
+            id: string
+            motorista_id: string
+            estudante_id: string
+            viatura_id: string 
+            created_at: string
+            updated_at: string
+            }
+
+            avaliacoes: {
+                id: string
+                estudante_id: string
+                motorista_id: string
+                avaliacao: number
+                comentario: string | null
+                created_at: string
+                updated_at: string
+                }
+
+
+                relatorios: {
+                    id: string
+                    tipo: string
+                    dados: string
+                    created_at: string
+                    updated_at: string
+                }
+
+
     }
 }

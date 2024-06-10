@@ -18,9 +18,10 @@ export async function viaturasRoutes(app: FastifyInstance) {
             inspeccao: z.string(),
             seguro: z.string(),
             foto: z.string(),
-        })
+            lotacao: z.number().optional().default(17), 
+        });
 
-        const { matricula, marca, inspeccao, seguro, foto } = createViaturaBodySchema.parse(request.body);
+        const { matricula, marca, inspeccao, seguro, foto, lotacao } = createViaturaBodySchema.parse(request.body)
 
         await knex('viatura').insert({
             id: randomUUID(),
@@ -29,9 +30,10 @@ export async function viaturasRoutes(app: FastifyInstance) {
             inspeccao,
             seguro,
             foto,
-        })
+            lotacao, 
+        });
 
-        return reply.status(201).send();
+        return reply.status(201).send()
     })
 
     // PUT atualizar viatura por ID
@@ -46,10 +48,11 @@ export async function viaturasRoutes(app: FastifyInstance) {
             inspeccao: z.string().optional(),
             seguro: z.string().optional(),
             foto: z.string().optional(),
+            lotacao: z.number().optional(),
         })
 
         const { id } = getViaturaParamsSchema.parse(request.params)
-        const data = updateViaturaBodySchema.parse(request.body)
+        const data = updateViaturaBodySchema.parse(request.body);
 
         const updated = await knex('viatura').where('id', id).update(data)
 
@@ -75,5 +78,42 @@ export async function viaturasRoutes(app: FastifyInstance) {
         }
 
         return reply.send({ message: 'Viatura deletada com sucesso' })
+    })
+
+    // POST selecionar viatura
+    app.post('/selecionar-viatura', async (request, reply) => {
+        const selecionarViaturaBodySchema = z.object({
+            estudante_id: z.string().uuid(),
+            viatura_id: z.string().uuid(),
+        })
+
+        const { estudante_id, viatura_id } = selecionarViaturaBodySchema.parse(request.body)
+
+        // Verifica a lotação da viatura
+        const viatura = await knex('viatura').where({ id: viatura_id }).first()
+        const estudantesNaViatura = await knex('motorista_estudantes').where({ viatura_id }).count()
+
+        if (!viatura) {
+            return reply.status(404).send({ message: 'Viatura não encontrada' })
+        }
+
+        if (Number(estudantesNaViatura[0].count) >= viatura.lotacao) {
+            return reply.status(400).send({ message: 'Viatura lotada' })
+        }
+
+        // Verifica se o estudante já está associado a alguma viatura
+        const estudanteAssociado = await knex('motorista_estudantes').where({ estudante_id }).first()
+        if (estudanteAssociado) {
+            return reply.status(400).send({ message: 'Estudante já associado a uma viatura' })
+        }
+
+        // Associa o estudante à viatura
+        await knex('motorista_estudantes').insert({
+            id: randomUUID(),
+            estudante_id,
+            viatura_id,
+        })
+
+        return reply.status(201).send({ message: 'Viatura selecionada com sucesso' })
     })
 }
