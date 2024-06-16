@@ -2,8 +2,25 @@ import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { randomUUID } from 'crypto'
 import { knex } from '../database'
+import multer from 'fastify-multer'
+import path from 'path'
+
+// Configuração do multer
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/') // Pasta onde as imagens serão salvas
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}-${file.originalname}`)
+    }
+})
+
+const upload = multer({ storage: storage })
 
 export async function estudantesRoutes(app: FastifyInstance) {
+    // Registrar o plugin multer no Fastify
+    app.register(multer.contentParser)
+
     // GET listar estudantes
     app.get('/estudante', async () => {
         const estudantes = await knex('estudantes').select()
@@ -11,17 +28,17 @@ export async function estudantesRoutes(app: FastifyInstance) {
     })
 
     // POST criar estudante
-    app.post('/estudante', async (request, reply) => {
+    app.post('/estudante', { preHandler: upload.single('foto') }, async (request, reply) => {
         const createEstudanteBodySchema = z.object({
             usuario_id: z.string().uuid(),
             idade: z.number().int().positive(),
             contacto_responsavel: z.string(),
             classe: z.string(),
             turma: z.string(),
-            foto: z.string(),
         })
 
-        const { usuario_id, idade, contacto_responsavel, classe, turma, foto } = createEstudanteBodySchema.parse(request.body)
+        const { usuario_id, idade, contacto_responsavel, classe, turma } = createEstudanteBodySchema.parse(request.body)
+        const fotoPath = request.file?.path // Caminho da foto salva
 
         await knex('estudantes').insert({
             id: randomUUID(),
@@ -30,7 +47,7 @@ export async function estudantesRoutes(app: FastifyInstance) {
             contacto_responsavel,
             classe,
             turma,
-            foto,
+            foto: fotoPath, // Armazena o caminho da foto
         })
 
         return reply.status(201).send()
