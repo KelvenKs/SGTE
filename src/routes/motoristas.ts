@@ -2,9 +2,25 @@ import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { randomUUID } from 'crypto'
 import { knex } from '../database'
+import multer from 'fastify-multer'
+import path from 'path'
 
+// Configuração do multer
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/') // Pasta onde as imagens serão salvas
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}-${file.originalname}`)
+    }
+})
+
+const upload = multer({ storage: storage })
 
 export async function motoristasRoutes(app: FastifyInstance) {
+    // Registrar o plugin multer no Fastify
+    app.register(multer.contentParser)
+
     // GET listar motoristas
     app.get('/motorista', async () => {
         const motoristas = await knex('motoristas').select()
@@ -12,23 +28,23 @@ export async function motoristasRoutes(app: FastifyInstance) {
     })
 
     // POST criar motorista
-    app.post('/motorista', async (request, reply) => {
+    app.post('/motorista', { preHandler: upload.single('foto') }, async (request, reply) => {
         const createMotoristaBodySchema = z.object({
             usuario_id: z.string().uuid(),
             licenca: z.string(),
             registo_criminal: z.string(),
-            foto: z.string(),
             viatura_id: z.string().uuid().optional(),
         })
 
-        const { usuario_id, licenca, registo_criminal, foto, viatura_id } = createMotoristaBodySchema.parse(request.body)
+        const { usuario_id, licenca, registo_criminal, viatura_id } = createMotoristaBodySchema.parse(request.body)
+        const fotoPath = request.file?.path // Caminho da foto salva
 
         await knex('motoristas').insert({
             id: randomUUID(),
             usuario_id,
             licenca,
             registo_criminal,
-            foto,
+            foto: fotoPath, // Armazena o caminho da foto
             viatura_id: viatura_id || null,
         })
 
