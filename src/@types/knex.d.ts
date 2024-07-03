@@ -17,6 +17,7 @@ declare module 'knex/types/tables'{
             registo_criminal: string
             foto: string
             viatura_id: string | null
+            contacto: string
         }
         estudantes: {
             id: string

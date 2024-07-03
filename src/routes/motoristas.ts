@@ -1,5 +1,4 @@
 
-// motoristas.ts
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { randomUUID } from 'crypto'
@@ -35,9 +34,10 @@ export async function motoristasRoutes(app: FastifyInstance) {
             licenca: z.string(),
             registo_criminal: z.string(),
             viatura_id: z.string().uuid().optional(),
+            contacto: z.string().regex(/^\d{9}$/), // Adicionando validação para 9 dígitos
         })
 
-        const { licenca, registo_criminal, viatura_id } = createMotoristaBodySchema.parse(request.body)
+        const { licenca, registo_criminal, viatura_id, contacto } = createMotoristaBodySchema.parse(request.body)
         const fotoPath = request.file?.path // Caminho da foto salva
 
         // Inserir o motorista e retornar o usuario_id do ultimo usuario inserido
@@ -48,6 +48,7 @@ export async function motoristasRoutes(app: FastifyInstance) {
                 registo_criminal,
                 foto: fotoPath, // Armazena o caminho da foto
                 viatura_id: viatura_id || null,
+                contacto, // Armazena o contacto
             })
             .returning('usuario_id')
 
@@ -59,63 +60,65 @@ export async function motoristasRoutes(app: FastifyInstance) {
     })
 
     // PUT atualizar motorista por ID
-app.put('/motorista/:id', { preHandler: upload.single('foto') }, async (request, reply) => {
-    const updateMotoristaParamsSchema = z.object({
-        id: z.string().uuid(),
-    })
+    app.put('/motorista/:id', { preHandler: upload.single('foto') }, async (request, reply) => {
+        const updateMotoristaParamsSchema = z.object({
+            id: z.string().uuid(),
+        })
 
-    const updateMotoristaBodySchema = z.object({
-        licenca: z.string().optional(),
-        registo_criminal: z.string().optional(),
-        viatura_id: z.string().uuid().optional(),
-    })
+        const updateMotoristaBodySchema = z.object({
+            licenca: z.string().optional(),
+            registo_criminal: z.string().optional(),
+            viatura_id: z.string().uuid().optional(),
+            contacto: z.string().regex(/^\d{9}$/).optional(), // Adicionando validação para 9 dígitos
+        })
 
-    const { id } = updateMotoristaParamsSchema.parse(request.params)
-    const { licenca, registo_criminal, viatura_id } = updateMotoristaBodySchema.parse(request.body)
-    const fotoPath = request.file?.path // Caminho da foto salva, se for enviada uma nova foto
+        const { id } = updateMotoristaParamsSchema.parse(request.params)
+        const { licenca, registo_criminal, viatura_id, contacto } = updateMotoristaBodySchema.parse(request.body)
+        const fotoPath = request.file?.path // Caminho da foto salva, se for enviada uma nova foto
 
-    // Construir o objeto de atualização
-    const updateData: Record<string, any> = {}
-    if (licenca) updateData.licenca = licenca
-    if (registo_criminal) updateData.registo_criminal = registo_criminal
-    if (viatura_id) updateData.viatura_id = viatura_id
-    if (fotoPath) updateData.foto = fotoPath
+        // Construir o objeto de atualização
+        const updateData: Record<string, any> = {}
+        if (licenca) updateData.licenca = licenca
+        if (registo_criminal) updateData.registo_criminal = registo_criminal
+        if (viatura_id) updateData.viatura_id = viatura_id
+        if (fotoPath) updateData.foto = fotoPath
+        if (contacto) updateData.contacto = contacto // Atualiza o contacto
 
-    try {
-        const result = await knex('motoristas')
-            .where({ id })
-            .update(updateData)
+        try {
+            const result = await knex('motoristas')
+                .where({ id })
+                .update(updateData)
 
-        if (result === 0) {
-            return reply.status(404).send({ message: 'Motorista não encontrado' })
+            if (result === 0) {
+                return reply.status(404).send({ message: 'Motorista não encontrado' })
+            }
+
+            return reply.status(200).send({ message: 'Motorista atualizado com sucesso' })
+        } catch (error) {
+            return reply.status(500).send({ message: 'Erro ao atualizar motorista' })
         }
+    })
 
-        return reply.status(200).send({ message: 'Motorista atualizado com sucesso' })
-    } catch (error) {
-        return reply.status(500).send({ message: 'Erro ao atualizar motorista' })
-    }
-})
     // DELETE motorista por ID
-app.delete('/motorista/:id', async (request, reply) => {
-    const deleteMotoristaParamsSchema = z.object({
-        id: z.string().uuid(),
-    })
+    app.delete('/motorista/:id', async (request, reply) => {
+        const deleteMotoristaParamsSchema = z.object({
+            id: z.string().uuid(),
+        })
 
-    const { id } = deleteMotoristaParamsSchema.parse(request.params)
+        const { id } = deleteMotoristaParamsSchema.parse(request.params)
 
-    try {
-        const result = await knex('motoristas')
-            .where({ id })
-            .del()
+        try {
+            const result = await knex('motoristas')
+                .where({ id })
+                .del()
 
-        if (result === 0) {
-            return reply.status(404).send({ message: 'Motorista não encontrado' })
+            if (result === 0) {
+                return reply.status(404).send({ message: 'Motorista não encontrado' })
+            }
+
+            return reply.status(200).send({ message: 'Motorista deletado com sucesso' })
+        } catch (error) {
+            return reply.status(500).send({ message: 'Erro ao deletar motorista' })
         }
-
-        return reply.status(200).send({ message: 'Motorista deletado com sucesso' })
-    } catch (error) {
-        return reply.status(500).send({ message: 'Erro ao deletar motorista' })
-    }
-})
-
+    })
 }

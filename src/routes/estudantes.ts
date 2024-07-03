@@ -31,7 +31,7 @@ export async function estudantesRoutes(app: FastifyInstance) {
     app.post('/estudante', { preHandler: upload.single('foto') }, async (request, reply) => {
         const createEstudanteBodySchema = z.object({
             idade: z.number().int().positive(),
-            contacto_responsavel: z.string(),
+            contacto_responsavel: z.string().regex(/^\d{9}$/), // Adicionando validação para 9 dígitos,
             classe: z.string(),
             turma: z.string(),
         })
@@ -70,7 +70,7 @@ export async function estudantesRoutes(app: FastifyInstance) {
 
         const updateEstudanteBodySchema = z.object({
             idade: z.number().int().positive().optional(),
-            contacto_responsavel: z.string().optional(),
+            contacto_responsavel: z.string().regex(/^\d{9}$/), // Adicionando validação para 9 dígitos,
             classe: z.string().optional(),
             turma: z.string().optional(),
             foto: z.string().optional(),
