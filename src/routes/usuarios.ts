@@ -57,12 +57,18 @@ export async function usuariosRoutes(app: FastifyInstance) {
     app.post('/usuario', async (request, reply) => {
         const createUsuarioBodySchema = z.object({
             nome: z.string(),
-            email: z.string(),
+            email: z.string().email(),
             password: z.string(),
             nivel_acesso: z.enum(['estudante', 'motorista', 'administrador']),
         })
 
         const { nome, email, password, nivel_acesso } = createUsuarioBodySchema.parse(request.body as CreateUserRequestBody)
+
+        // Verifique se o email já está em uso
+        const existingUser = await knex('usuarios').where({ email }).first()
+        if (existingUser) {
+            return reply.status(400).send({ message: 'Email já está em uso' })
+        }
 
         await knex('usuarios').insert({
             id: randomUUID(),
@@ -72,7 +78,7 @@ export async function usuariosRoutes(app: FastifyInstance) {
             nivel_acesso,
         })
 
-        return reply.status(201).send()
+        return reply.status(201).send({ message: 'Usuário criado com sucesso' })
     })
 
     // DELETE por ID do usuario
