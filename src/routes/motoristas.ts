@@ -39,8 +39,11 @@ export async function motoristasRoutes(app: FastifyInstance) {
 
         const { licenca, registo_criminal, viatura_id, contacto } = createMotoristaBodySchema.parse(request.body)
         const fotoPath = request.file?.path // Caminho da foto salva
+        //inserir usuario e retornar o id
 
-        // Inserir o motorista e retornar o usuario_id do ultimo usuario inserido
+                //codigo
+
+        // Inserir o motorista onde o id é o id do retronado
         const [usuarioId] = await knex('motoristas')
             .insert({
                 id: randomUUID(),
