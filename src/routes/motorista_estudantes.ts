@@ -19,6 +19,19 @@ export async function motoristaEstudantesRoutes(app: FastifyInstance) {
 
         const { motorista_id, estudante_id } = createMotoristaEstudanteBodySchema.parse(request.body)
 
+        // Verificar se o motorista está associado à viatura do estudante
+        const isAssociated = await knex('viaturas')
+            .join('motoristas', 'viaturas.id', 'motoristas.viatura_id')
+            .join('estudantes', 'viaturas.id', 'estudantes.viatura_id')
+            .where('motoristas.id', motorista_id)
+            .where('estudantes.id', estudante_id)
+            .select('viaturas.id')
+            .first()
+
+        if (!isAssociated) {
+            return reply.status(403).send({ message: 'Motorista não tem permissão para acessar este estudante' })
+        }
+
         await knex('motorista_estudantes').insert({
             id: randomUUID(),
             motorista_id,
@@ -44,6 +57,19 @@ export async function motoristaEstudantesRoutes(app: FastifyInstance) {
         const { id } = getMotoristaEstudanteParamsSchema.parse(request.params)
         const data = updateMotoristaEstudanteBodySchema.parse(request.body)
 
+        // Verificar se o motorista está associado à viatura do estudante
+        const isAssociated = await knex('viaturas')
+            .join('motoristas', 'viaturas.id', 'motoristas.viatura_id')
+            .join('estudantes', 'viaturas.id', 'estudantes.viatura_id')
+            .where('motoristas.id', data.motorista_id || '')
+            .where('estudantes.id', data.estudante_id || '')
+            .select('viaturas.id')
+            .first()
+
+        if (!isAssociated) {
+            return reply.status(403).send({ message: 'Motorista não tem permissão para acessar este estudante' })
+        }
+
         const updated = await knex('motorista_estudantes').where('id', id).update({
             ...data,
             updated_at: new Date().toISOString(),
@@ -63,6 +89,29 @@ export async function motoristaEstudantesRoutes(app: FastifyInstance) {
         });
 
         const { id } = getMotoristaEstudanteParamsSchema.parse(request.params)
+
+        // Buscar a relação para verificar a associação do motorista
+        const motoristaEstudante = await knex('motorista_estudantes')
+            .where('id', id)
+            .select('motorista_id', 'estudante_id')
+            .first()
+
+        if (!motoristaEstudante) {
+            return reply.status(404).send({ message: 'Relação entre motorista e estudante não encontrada' })
+        }
+
+        // Verificar se o motorista está associado à viatura do estudante
+        const isAssociated = await knex('viaturas')
+            .join('motoristas', 'viaturas.id', 'motoristas.viatura_id')
+            .join('estudantes', 'viaturas.id', 'estudantes.viatura_id')
+            .where('motoristas.id', motoristaEstudante.motorista_id)
+            .where('estudantes.id', motoristaEstudante.estudante_id)
+            .select('viaturas.id')
+            .first()
+
+        if (!isAssociated) {
+            return reply.status(403).send({ message: 'Motorista não tem permissão para acessar este estudante' })
+        }
 
         const deleted = await knex('motorista_estudantes').where('id', id).delete()
 

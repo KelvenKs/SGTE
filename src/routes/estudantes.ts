@@ -1,9 +1,9 @@
-// estudantes.ts
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { randomUUID } from 'crypto'
 import { knex } from '../database'
 import multer from 'fastify-multer'
+import bcrypt from 'bcrypt'
 
 // Configuração do multer
 const storage = multer.diskStorage({
@@ -27,87 +27,135 @@ export async function estudantesRoutes(app: FastifyInstance) {
         return estudantes
     })
 
+    // GET estudante por ID
+    app.get('/estudante/:id', async (request, reply) => {
+    const getEstudanteParamsSchema = z.object({
+        id: z.string().uuid(),
+    })
+
+    const { id } = getEstudanteParamsSchema.parse(request.params)
+
+    try {
+        const estudante = await knex('estudantes')
+            .where({ id })
+            .first()
+
+        if (!estudante) {
+            return reply.status(404).send({ message: 'Estudante não encontrado' })
+        }
+
+        return reply.status(200).send(estudante)
+    } catch (error) {
+        return reply.status(500).send({ message: 'Erro ao buscar estudante' })
+    }
+})    
+
     // POST criar estudante
     app.post('/estudante', { preHandler: upload.single('foto') }, async (request, reply) => {
         const createEstudanteBodySchema = z.object({
+            nome: z.string(),
+            email: z.string().email(),
+            password: z.string(),
             idade: z.number().int().positive(),
-            contacto_responsavel: z.string().regex(/^\d{9}$/), // Adicionando validação para 9 dígitos,
+            contacto_responsavel: z.string().regex(/^\d{9}$/), // Adicionando validação para 9 dígitos
             classe: z.string(),
             turma: z.string(),
         })
 
-        const { idade, contacto_responsavel, classe, turma } = createEstudanteBodySchema.parse(request.body)
+        const { nome, email, password, idade, contacto_responsavel, classe, turma } = createEstudanteBodySchema.parse(request.body)
         const fotoPath = request.file?.path // Caminho da foto salva
 
-        try {
-            // Inserir o estudante e retornar o usuario_id do último usuário inserido
-            const [usuarioId] = await knex('estudantes')
-                .insert({
-                    id: randomUUID(),
-                    idade,
-                    contacto_responsavel,
-                    classe,
-                    turma,
-                    foto: fotoPath, // Armazena o caminho da foto
-                })
-                .returning('usuario_id')
+        // Hash da senha
+        const hashedPassword = await bcrypt.hash(password, 10)
 
-            if (!usuarioId) {
-                return reply.status(500).send({ message: 'Nenhum usuário foi inserido antes deste estudante' })
-            }
+        // Criar o usuário primeiro
+        const [usuario] = await knex('usuarios')
+            .insert({
+                id: randomUUID(),
+                nome,
+                email,
+                password: hashedPassword,
+                nivel_acesso: 'estudante',
+            })
+            .returning(['id'])
 
-            return reply.status(201).send()
-        } catch (error) {
-            return reply.status(500).send({ message: 'Erro ao criar estudante' })
+        if (!usuario || !usuario.id) {
+            return reply.status(500).send({ message: 'Erro ao criar usuário' })
         }
+
+        // Inserir o estudante usando o ID do usuário criado
+        await knex('estudantes').insert({
+            id: randomUUID(),
+            usuario_id: usuario.id,
+            idade,
+            contacto_responsavel,
+            classe,
+            turma,
+            foto: fotoPath, // Armazena o caminho da foto
+        })
+
+        return reply.status(201).send({ message: 'Estudante criado com sucesso' })
     })
 
     // PUT atualizar estudante por ID
-    app.put('/estudante/:id', async (request, reply) => {
-        const getEstudanteParamsSchema = z.object({
+    app.put('/estudante/:id', { preHandler: upload.single('foto') }, async (request, reply) => {
+        const updateEstudanteParamsSchema = z.object({
             id: z.string().uuid(),
         })
 
         const updateEstudanteBodySchema = z.object({
             idade: z.number().int().positive().optional(),
-            contacto_responsavel: z.string().regex(/^\d{9}$/), // Adicionando validação para 9 dígitos,
+            contacto_responsavel: z.string().regex(/^\d{9}$/).optional(), // Adicionando validação para 9 dígitos
             classe: z.string().optional(),
             turma: z.string().optional(),
             foto: z.string().optional(),
         })
 
-        const { id } = getEstudanteParamsSchema.parse(request.params);
-        const data = updateEstudanteBodySchema.parse(request.body);
+        const { id } = updateEstudanteParamsSchema.parse(request.params)
+        const { idade, contacto_responsavel, classe, turma } = updateEstudanteBodySchema.parse(request.body)
+        const fotoPath = request.file?.path // Caminho da foto salva, se for enviada uma nova foto
+
+        // Construir o objeto de atualização
+        const updateData: Record<string, any> = {}
+        if (idade) updateData.idade = idade
+        if (contacto_responsavel) updateData.contacto_responsavel = contacto_responsavel
+        if (classe) updateData.classe = classe
+        if (turma) updateData.turma = turma
+        if (fotoPath) updateData.foto = fotoPath
 
         try {
-            const updated = await knex('estudantes').where('id', id).update(data);
+            const result = await knex('estudantes')
+                .where({ id })
+                .update(updateData)
 
-            if (updated === 0) {
+            if (result === 0) {
                 return reply.status(404).send({ message: 'Estudante não encontrado' })
             }
 
-            return reply.send({ message: 'Estudante atualizado com sucesso' })
+            return reply.status(200).send({ message: 'Estudante atualizado com sucesso' })
         } catch (error) {
             return reply.status(500).send({ message: 'Erro ao atualizar estudante' })
         }
-    });
+    })
 
     // DELETE estudante por ID
     app.delete('/estudante/:id', async (request, reply) => {
-        const getEstudanteParamsSchema = z.object({
+        const deleteEstudanteParamsSchema = z.object({
             id: z.string().uuid(),
         })
 
-        const { id } = getEstudanteParamsSchema.parse(request.params)
+        const { id } = deleteEstudanteParamsSchema.parse(request.params)
 
         try {
-            const deleted = await knex('estudantes').where('id', id).delete()
+            const result = await knex('estudantes')
+                .where({ id })
+                .del()
 
-            if (deleted === 0) {
+            if (result === 0) {
                 return reply.status(404).send({ message: 'Estudante não encontrado' })
             }
 
-            return reply.send({ message: 'Estudante deletado com sucesso' })
+            return reply.status(200).send({ message: 'Estudante deletado com sucesso' })
         } catch (error) {
             return reply.status(500).send({ message: 'Erro ao deletar estudante' })
         }

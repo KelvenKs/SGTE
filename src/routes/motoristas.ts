@@ -1,10 +1,10 @@
-
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { randomUUID } from 'crypto'
 import { knex } from '../database'
 import multer from 'fastify-multer'
 import path from 'path'
+import bcrypt from 'bcrypt'
 
 // Configuração do multer
 const storage = multer.diskStorage({
@@ -28,38 +28,74 @@ export async function motoristasRoutes(app: FastifyInstance) {
         return motoristas
     })
 
+    // GET motorista por ID
+    app.get('/motorista/:id', async (request, reply) => {
+        const getMotoristaParamsSchema = z.object({
+            id: z.string().uuid(),
+        })
+
+        const { id } = getMotoristaParamsSchema.parse(request.params)
+
+        try {
+            const motorista = await knex('motoristas')
+                .where({ id })
+                .first()
+
+            if (!motorista) {
+                return reply.status(404).send({ message: 'Motorista não encontrado' })
+            }
+
+            return reply.status(200).send(motorista)
+        } catch (error) {
+            return reply.status(500).send({ message: 'Erro ao buscar motorista' })
+        }
+    })
+
     // POST criar motorista
     app.post('/motorista', { preHandler: upload.single('foto') }, async (request, reply) => {
         const createMotoristaBodySchema = z.object({
+            nome: z.string(),
+            email: z.string().email(),
+            password: z.string(),
             licenca: z.string(),
             registo_criminal: z.string(),
             viatura_id: z.string().uuid().optional(),
             contacto: z.string().regex(/^\d{9}$/), // Adicionando validação para 9 dígitos
         })
 
-        const { licenca, registo_criminal, viatura_id, contacto } = createMotoristaBodySchema.parse(request.body)
+        const { nome, email, password, licenca, registo_criminal, viatura_id, contacto } = createMotoristaBodySchema.parse(request.body)
         const fotoPath = request.file?.path // Caminho da foto salva
-        //inserir usuario e retornar o id
 
-                //codigo
+        // Hash da senha
+        const hashedPassword = await bcrypt.hash(password, 10)
 
-        // Inserir o motorista onde o id é o id do retronado
-        const [usuarioId] = await knex('motoristas')
+        // Criar o usuário primeiro
+        const [usuario] = await knex('usuarios')
             .insert({
                 id: randomUUID(),
-                licenca,
-                registo_criminal,
-                foto: fotoPath, // Armazena o caminho da foto
-                viatura_id: viatura_id || null,
-                contacto, // Armazena o contacto
+                nome,
+                email,
+                password: hashedPassword,
+                nivel_acesso: 'motorista',
             })
-            .returning('usuario_id')
+            .returning(['id'])
 
-        if (!usuarioId) {
-            return reply.status(500).send({ message: 'Nenhum usuário foi inserido antes deste motorista' })
+        if (!usuario || !usuario.id) {
+            return reply.status(500).send({ message: 'Erro ao criar usuário' })
         }
 
-        return reply.status(201).send()
+        // Inserir o motorista usando o ID do usuário criado
+        await knex('motoristas').insert({
+            id: randomUUID(),
+            usuario_id: usuario.id,
+            licenca,
+            registo_criminal,
+            foto: fotoPath, // Armazena o caminho da foto 
+            viatura_id: viatura_id || null,
+            contacto, // Armazena o contacto
+        })
+
+        return reply.status(201).send({ message: 'Motorista criado com sucesso' })
     })
 
     // PUT atualizar motorista por ID
