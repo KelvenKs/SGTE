@@ -44,28 +44,42 @@ app.get('/estudante', async () => {
 });
 
     // GET estudante por ID
-    app.get('/estudante/:id', async (request, reply) => {
-        const getEstudanteParamsSchema = z.object({
-            id: z.string().uuid(),
-        })
-
-        const { id } = getEstudanteParamsSchema.parse(request.params)
-
-        try {
-            const estudante = await knex('estudantes')
-                .where({ id })
-                .first()
-
-            if (!estudante) {
-                return reply.status(404).send({ message: 'Estudante não encontrado' })
-            }
-
-            return reply.status(200).send(estudante)
-        } catch (error) {
-            return reply.status(500).send({ message: 'Erro ao buscar estudante' })
-        }
+app.get('/estudante/:id', async (request, reply) => {
+    const getEstudanteParamsSchema = z.object({
+        id: z.string().uuid(),
     })
 
+    const { id } = getEstudanteParamsSchema.parse(request.params)
+
+    try {
+        const estudante = await knex('estudantes')
+            .join('usuarios', 'estudantes.usuario_id', '=', 'usuarios.id')
+            .select(
+                'estudantes.id',
+                'usuarios.nome',
+                'usuarios.email',
+                'usuarios.password',
+                'usuarios.nivel_acesso',
+                'estudantes.idade',
+                'estudantes.contacto_responsavel',
+                'estudantes.classe',
+                'estudantes.turma',
+                'estudantes.foto',
+                'estudantes.created_at',
+                'estudantes.updated_at'
+            )
+            .where('estudantes.id', id)
+            .first()
+
+        if (!estudante) {
+            return reply.status(404).send({ message: 'Estudante não encontrado' })
+        }
+
+        return reply.status(200).send(estudante)
+    } catch (error) {
+        return reply.status(500).send({ message: 'Erro ao buscar estudante' })
+    }
+})
     // POST criar estudante
 app.post('/estudante', { preHandler: upload.single('foto') }, async (request, reply) => {
     const createEstudanteBodySchema = z.object({

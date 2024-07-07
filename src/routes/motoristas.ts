@@ -41,38 +41,42 @@ app.get('/motorista', async () => {
 });
 
     // GET motorista por ID
-    app.get('/motorista/:id', async (request, reply) => {
-        const getMotoristaParamsSchema = z.object({
-            id: z.string().uuid(),
-        })
-
-        const { id } = getMotoristaParamsSchema.parse(request.params)
-
-        try {
-            const motorista = await knex('motoristas')
-                .join('usuarios', 'motoristas.usuario_id', '=', 'usuarios.id')
-                .select(
-                    'motoristas.id',
-                    'motoristas.usuario_id',
-                    'usuarios.nome',
-                    'usuarios.email',
-                    'motoristas.licenca',
-                    'motoristas.registo_criminal',
-                    'motoristas.foto',
-                    'motoristas.contacto'
-                )
-                .where('motoristas.id', id)
-                .first()
-
-            if (!motorista) {
-                return reply.status(404).send({ message: 'Motorista não encontrado' })
-            }
-
-            return reply.status(200).send(motorista)
-        } catch (error) {
-            return reply.status(500).send({ message: 'Erro ao buscar motorista' })
-        }
+app.get('/motorista/:id', async (request, reply) => {
+    const getMotoristaParamsSchema = z.object({
+        id: z.string().uuid(),
     })
+
+    const { id } = getMotoristaParamsSchema.parse(request.params)
+
+    try {
+        const motorista = await knex('motoristas')
+            .join('usuarios', 'motoristas.usuario_id', '=', 'usuarios.id')
+            .select(
+                'motoristas.id',
+                'usuarios.nome',
+                'usuarios.email',
+                'usuarios.password',
+                'usuarios.nivel_acesso',
+                'motoristas.licenca',
+                'motoristas.registo_criminal',
+                'motoristas.foto',
+                'motoristas.contacto',
+                'motoristas.created_at',
+                'motoristas.updated_at'
+            )
+            .where('motoristas.id', id)
+            .first()
+
+        if (!motorista) {
+            return reply.status(404).send({ message: 'Motorista não encontrado' })
+        }
+
+        return reply.status(200).send(motorista)
+    } catch (error) {
+        return reply.status(500).send({ message: 'Erro ao buscar motorista' })
+    }
+})
+
 
     // POST criar motorista
 app.post('/motorista', { preHandler: upload.single('foto') }, async (request, reply) => {
