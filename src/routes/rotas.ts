@@ -10,6 +10,23 @@ export async function rotasRoutes(app: FastifyInstance) {
         return rotas
     })
 
+    // GET rota por ID
+    app.get('/rota/:id', async (request, reply) => {
+        const getRotaParamsSchema = z.object({
+            id: z.string().uuid(),
+        })
+
+        const { id } = getRotaParamsSchema.parse(request.params)
+
+        const rota = await knex('rotas').where('id', id).first()
+
+        if (!rota) {
+            return reply.status(404).send({ message: 'Rota não encontrada' })
+        }
+
+        return reply.send(rota)
+    })
+
     // POST criar rota
     app.post('/rota', async (request, reply) => {
         const createRotaBodySchema = z.object({
@@ -21,15 +38,19 @@ export async function rotasRoutes(app: FastifyInstance) {
 
         const { hora_chegada, hora_partida, descricao, viatura_id } = createRotaBodySchema.parse(request.body)
 
-        await knex('rotas').insert({
-            id: randomUUID(),
-            hora_chegada,
-            hora_partida,
-            descricao,
-            viatura_id,
-        })
+        try {
+            await knex('rotas').insert({
+                id: randomUUID(),
+                hora_chegada,
+                hora_partida,
+                descricao,
+                viatura_id,
+            })
 
-        return reply.status(201).send()
+            return reply.status(201).send({ message: 'Rota criada com sucesso' })
+        } catch (error) {
+            return reply.status(500).send({ message: 'Erro ao criar rota', error })
+        }
     })
 
     // PUT atualizar rota por ID
@@ -48,13 +69,17 @@ export async function rotasRoutes(app: FastifyInstance) {
         const { id } = getRotaParamsSchema.parse(request.params)
         const data = updateRotaBodySchema.parse(request.body)
 
-        const updated = await knex('rotas').where('id', id).update(data)
+        try {
+            const updated = await knex('rotas').where('id', id).update(data)
 
-        if (updated === 0) {
-            return reply.status(404).send({ message: 'Rota não encontrada' })
+            if (updated === 0) {
+                return reply.status(404).send({ message: 'Rota não encontrada' })
+            }
+
+            return reply.send({ message: 'Rota atualizada com sucesso' })
+        } catch (error) {
+            return reply.status(500).send({ message: 'Erro ao atualizar rota', error })
         }
-
-        return reply.send({ message: 'Rota atualizada com sucesso' })
     })
 
     // DELETE rota por ID
@@ -65,12 +90,16 @@ export async function rotasRoutes(app: FastifyInstance) {
 
         const { id } = getRotaParamsSchema.parse(request.params)
 
-        const deleted = await knex('rotas').where('id', id).delete()
+        try {
+            const deleted = await knex('rotas').where('id', id).delete()
 
-        if (deleted === 0) {
-            return reply.status(404).send({ message: 'Rota não encontrada' })
+            if (deleted === 0) {
+                return reply.status(404).send({ message: 'Rota não encontrada' })
+            }
+
+            return reply.send({ message: 'Rota deletada com sucesso' })
+        } catch (error) {
+            return reply.status(500).send({ message: 'Erro ao deletar rota', error })
         }
-
-        return reply.send({ message: 'Rota deletada com sucesso' })
     })
 }

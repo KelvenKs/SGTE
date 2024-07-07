@@ -8,7 +8,8 @@ export async function up(knex: Knex): Promise<void> {
         table.text('inspeccao').notNullable()
         table.text('seguro').notNullable() 
         table.text('foto').notNullable()
-
+        table.integer('lotacao').defaultTo(17); // Adiciona a coluna 'lotacao' com o valor padrão de 17
+        table.uuid('motorista_id').references('id').inTable('motoristas').onDelete('SET NULL')
          table.timestamps(true, true)
     })
 }

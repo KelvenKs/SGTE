@@ -7,7 +7,6 @@ export async function up(knex: Knex): Promise<void> {
         table.text('licenca').notNullable()
         table.text('registo_criminal').notNullable()
         table.text('foto').notNullable()
-        table.uuid('viatura_id').references('id').inTable('viaturas').onDelete('SET NULL')
         table.string('contacto', 9)  // Adicionando o campo 'contacto'
         table.timestamps(true, true)
     })

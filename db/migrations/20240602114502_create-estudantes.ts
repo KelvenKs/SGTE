@@ -8,6 +8,7 @@ export async function up(knex: Knex): Promise<void> {
         table.text('contacto_responsavel').notNullable()
         table.text('classe').notNullable()
         table.text('turma').notNullable()
+        table.text('foto') // Remova .notNullable() se permitir valores nulos
         table.timestamps(true, true)
     })
 }

@@ -2,9 +2,13 @@ import {knex as setupKnex, Knex} from 'knex'
 import { env } from './env'
 
 export const config: Knex.Config = {
-    client: 'sqlite',
+    client: 'mysql2',
     connection: {
-        filename: env.DATABASE_URL,
+        host: '127.0.0.1',
+      port: 3306,
+      user: 'root',
+      password: '',
+      database: 'sgte',
     },
     useNullAsDefault: true,
     migrations: {
@@ -13,4 +17,3 @@ export const config: Knex.Config = {
     },
 }   
 export const knex = setupKnex(config)
-

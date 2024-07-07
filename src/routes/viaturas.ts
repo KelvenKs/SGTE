@@ -18,10 +18,11 @@ export async function viaturasRoutes(app: FastifyInstance) {
             inspeccao: z.string(),
             seguro: z.string(),
             foto: z.string(),
-            lotacao: z.number().optional().default(17), 
+            lotacao: z.number().optional().default(17),
+            motorista_id: z.string().uuid(),
         });
 
-        const { matricula, marca, inspeccao, seguro, foto, lotacao } = createViaturaBodySchema.parse(request.body)
+        const { matricula, marca, inspeccao, seguro, foto, lotacao, motorista_id } = createViaturaBodySchema.parse(request.body)
 
         await knex('viatura').insert({
             id: randomUUID(),
@@ -30,10 +31,11 @@ export async function viaturasRoutes(app: FastifyInstance) {
             inspeccao,
             seguro,
             foto,
-            lotacao, 
+            lotacao,
+            motorista_id,
         });
 
-        return reply.status(201).send()
+        return reply.status(201).send({ message: 'Viatura criada com sucesso' })
     })
 
     // PUT atualizar viatura por ID
@@ -49,6 +51,7 @@ export async function viaturasRoutes(app: FastifyInstance) {
             seguro: z.string().optional(),
             foto: z.string().optional(),
             lotacao: z.number().optional(),
+            motorista_id: z.string().uuid().optional(),
         })
 
         const { id } = getViaturaParamsSchema.parse(request.params)

@@ -16,7 +16,6 @@ declare module 'knex/types/tables'{
             licenca: string
             registo_criminal: string
             foto: string
-            viatura_id: string | null
             contacto: string
         }
         estudantes: {
@@ -37,6 +36,7 @@ declare module 'knex/types/tables'{
             seguro: string
             foto: string
             lotacao: number
+            motorista_id: string | null
         }
 
         rotas: {
