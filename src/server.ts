@@ -5,7 +5,6 @@ import { motoristasRoutes } from './routes/motoristas'
 import { estudantesRoutes } from './routes/estudantes'
 import { viaturasRoutes } from './routes/viaturas'
 import { rotasRoutes } from './routes/rotas'
-import { motoristaEstudantesRoutes } from './routes/motorista_estudantes'
 import { avaliacoesRoutes } from './routes/avaliacoes'
 import { relatoriosRoutes } from './routes/relatorios'
 import { authenticate } from './routes/authMiddleware'
@@ -24,7 +23,7 @@ app.register(motoristasRoutes)
 app.register(estudantesRoutes)
 app.register(viaturasRoutes)
 app.register(rotasRoutes)
-app.register(motoristaEstudantesRoutes)
+
 app.register(avaliacoesRoutes)
 app.register(relatoriosRoutes)
 
