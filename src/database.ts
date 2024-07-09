@@ -8,7 +8,7 @@ export const config: Knex.Config = {
       port: 3306,
       user: 'root',
       password: '',
-      database: 'sgte',
+      database: 'estrans',
     },
     useNullAsDefault: true,
     migrations: {
